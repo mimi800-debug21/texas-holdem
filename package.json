@@ -1,0 +1,36 @@
+{
+  "name": "texas-holdem-ai-strategy",
+  "version": "1.0.0",
+  "description": "Centralized Texas Hold'em poker strategy AI that coordinates all bot players",
+  "main": "poker-ai-decision.js",
+  "scripts": {
+    "start": "serve .",
+    "dev": "serve -l 3000 .",
+    "build": "echo 'Build completed'",
+    "validate": "node validate.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "poker",
+    "ai",
+    "strategy",
+    "texas-holdem",
+    "game-engine"
+  ],
+  "author": "Texas Hold'em AI System",
+  "license": "MIT",
+  "dependencies": {
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-repo/texas-holdem-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-repo/texas-holdem-ai/issues"
+  },
+  "homepage": "https://github.com/your-repo/texas-holdem-ai#readme"
+}

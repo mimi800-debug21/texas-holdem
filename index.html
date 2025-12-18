@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Texas Hold'em Poker AI - Production</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #0a3d1f, #1a5c2e);
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 20px 0;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      opacity: 0.9;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .game-info-panel {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .game-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .info-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .info-card h3 {
+      color: #ffd700;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .info-card .value {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .difficulty-selector {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 15px 0;
+    }
+
+    .difficulty-btn {
+      padding: 10px 20px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: bold;
+    }
+
+    .difficulty-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .difficulty-btn.active {
+      border-color: #ffd700;
+      background: rgba(255, 215, 0, 0.2);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .table-container {
+      position: relative;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 0;
+    }
+
+    .poker-table {
+      background: radial-gradient(circle, #0d5a26 0%, #08331a 100%);
+      border-radius: 50%;
+      height: 500px;
+      width: 100%;
+      position: relative;
+      border: 15px solid #8B4513;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .player-position {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 10px;
+      min-width: 150px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .player-position:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+
+    .player-top { top: 20px; left: 50%; transform: translateX(-50%); }
+    .player-right { top: 50%; right: 20px; transform: translateY(-50%); }
+    .player-bottom { bottom: 20px; left: 50%; transform: translateX(-50%); }
+    .player-left { top: 50%; left: 20px; transform: translateY(-50%); }
+
+    .player-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #ffd700;
+    }
+
+    .player-stack {
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      color: #aaa;
+    }
+
+    .player-status {
+      font-size: 0.8rem;
+      color: #77c84e;
+      font-weight: bold;
+    }
+
+    .player-cards {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .center-pot {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.2);
+      padding: 15px 25px;
+      border-radius: 25px;
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .board-cards {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      width: 70px;
+      height: 100px;
+      background: linear-gradient(to bottom, #fff 0%, #f8f8f8 100%);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: black;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      font-size: 12px;
+    }
+
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      font-size: 12px;
+      transform: rotate(180deg);
+    }
+
+    .card.red-suit { color: #d32f2f; }
+    .card.black-suit { color: #333; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      margin: 20px 0;
+      padding: 0 20px;
+    }
+
+    .round-controls, .action-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .round-controls {
+      flex-direction: row;
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: bold;
+      min-width: 120px;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none;
+    }
+
+    .deal-btn {
+      background: linear-gradient(to right, #4CAF50, #2E7D32);
+      color: white;
+    }
+
+    .round-btn {
+      background: linear-gradient(to right, #2196F3, #1976D2);
+      color: white;
+    }
+
+    .action-btn {
+      background: linear-gradient(to right, #FF9800, #F57C00);
+      color: white;
+    }
+
+    .fold-btn {
+      background: linear-gradient(to right, #f44336, #d32f2f);
+      color: white;
+    }
+
+    .action-input {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .action-input input {
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      width: 150px;
+      text-align: center;
+    }
+
+    .status-message {
+      text-align: center;
+      padding: 15px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin: 15px 0;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .game-logs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .game-logs {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .log-panel {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .log-panel h3 {
+      color: #ffd700;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .ai-actions, .hand-history {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      padding: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.9rem;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .ai-thinking {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      background: rgba(0, 100, 200, 0.2);
+      border-radius: 5px;
+      margin: 5px 0;
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      text-align: center;
+      padding: 10px;
+      background: rgba(255, 0, 0, 0.1);
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+
+    .success-message {
+      color: #4ade80;
+      text-align: center;
+      padding: 10px;
+      background: rgba(74, 222, 128, 0.1);
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      padding: 20px;
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Texas Hold'em Poker AI</h1>
+    <p class="subtitle">Advanced AI strategy system with coordinated bot players. Select difficulty and play against intelligent opponents.</p>
+  </header>
+
+  <div class="game-container">
+    <div class="game-info-panel">
+      <div class="game-info-grid">
+        <div class="info-card">
+          <h3>Current Round</h3>
+          <div class="value" id="current-round">Preflop</div>
+        </div>
+        <div class="info-card">
+          <h3>Pot Size</h3>
+          <div class="value">$<span id="pot-size">0</span></div>
+        </div>
+        <div class="info-card">
+          <h3>Your Stack</h3>
+          <div class="value">$<span id="human-stack">2000</span></div>
+        </div>
+        <div class="info-card">
+          <h3>Bots Active</h3>
+          <div class="value" id="active-bots">5</div>
+        </div>
+      </div>
+
+      <div class="difficulty-selector">
+        <button class="difficulty-btn active" data-difficulty="EASY">Easy</button>
+        <button class="difficulty-btn" data-difficulty="NORMAL">Normal</button>
+        <button class="difficulty-btn" data-difficulty="HARD">Hard</button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="poker-table">
+        <div class="player-position player-top" id="bot1-position">
+          <div class="player-name">Bot 1 (SB)</div>
+          <div class="player-stack">Stack: $<span class="stack">2100</span></div>
+          <div class="player-status">Waiting</div>
+          <div class="player-cards bot-cards"></div>
+        </div>
+
+        <div class="player-position player-right" id="bot2-position">
+          <div class="player-name">Bot 2 (BB)</div>
+          <div class="player-stack">Stack: $<span class="stack">1900</span></div>
+          <div class="player-status">Waiting</div>
+          <div class="player-cards bot-cards"></div>
+        </div>
+
+        <div class="player-position player-bottom" id="human-position">
+          <div class="player-name">You (BTN)</div>
+          <div class="player-stack">Stack: $<span class="stack" id="human-stack-display">2000</span></div>
+          <div class="player-status">Your Turn</div>
+          <div class="player-cards human-cards" id="human-cards"></div>
+        </div>
+
+        <div class="player-position player-left" id="bot3-position">
+          <div class="player-name">Bot 3 (UTG)</div>
+          <div class="player-stack">Stack: $<span class="stack">1750</span></div>
+          <div class="player-status">Waiting</div>
+          <div class="player-cards bot-cards"></div>
+        </div>
+
+        <div class="player-position" style="top: 30%; left: 15%; transform: translate(0, -50%);" id="bot4-position">
+          <div class="player-name">Bot 4 (MP)</div>
+          <div class="player-stack">Stack: $<span class="stack">1600</span></div>
+          <div class="player-status">Waiting</div>
+          <div class="player-cards bot-cards"></div>
+        </div>
+
+        <div class="player-position" style="top: 30%; right: 15%; transform: translate(0, -50%);" id="bot5-position">
+          <div class="player-name">Bot 5 (CO)</div>
+          <div class="player-stack">Stack: $<span class="stack">2200</span></div>
+          <div class="player-status">Waiting</div>
+          <div class="player-cards bot-cards"></div>
+        </div>
+
+        <div class="center-pot">
+          Pot: $<span id="center-pot-amount">0</span>
+        </div>
+
+        <div class="board-cards" id="board-cards">
+          <!-- Community cards will appear here -->
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="round-controls">
+        <button id="deal-btn" class="deal-btn">Deal New Hand</button>
+        <button id="flop-btn" class="round-btn" disabled>Deal Flop</button>
+        <button id="turn-btn" class="round-btn" disabled>Deal Turn</button>
+        <button id="river-btn" class="round-btn" disabled>Deal River</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="action-controls">
+        <div class="action-input">
+          <button id="fold-btn" class="fold-btn" disabled>Fold</button>
+          <button id="call-btn" class="action-btn" disabled>Call</button>
+          <button id="raise-btn" class="action-btn" disabled>Raise</button>
+          <input type="number" id="bet-amount" placeholder="Bet amount" min="1" disabled>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-message" id="status-message">Welcome! Ready to start a new hand. Select difficulty and click "Deal New Hand" to begin.</div>
+
+    <div class="game-logs">
+      <div class="log-panel">
+        <h3>AI Actions</h3>
+        <div class="ai-actions" id="ai-actions-log">Waiting for actions...</div>
+      </div>
+
+      <div class="log-panel">
+        <h3>Hand History</h3>
+        <div class="hand-history" id="hand-history">No actions yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Texas Hold'em Poker AI Strategy System | Advanced AI coordination | Production Ready</p>
+  </footer>
+
+  <!-- Load our modules -->
+  <script src="poker-utils.js"></script>
+  <script src="poker-ai-decision.js"></script>
+  <script src="poker-game-engine.js"></script>
+
+  <script>
+    // Configuration - in a real app this would come from environment
+    const API_TOKEN = 'eyJhbGciOiJBMjU2R0NNS1ciLCJjdHkiOiJKV1QiLCJlbmMiOiJBMjU2R0NNIiwiaXYiOiJvckxkNFBURzhTYVBxYU8zIiwia2lkIjoiSzRlM0Y3dkNfTzFIZzRzc2RjVVVVeUIySUhLSk1mWlFkTVpuNWx3c1FIdyIsInRhZyI6IjZQSndwVlF0QlkwelBwaFBsYzlzS2ciLCJ0eXAiOiJhdCtqd3QifQ.HUf1-DIA03ede81S8O5bAPGa14wrilkAqUAFTKi_JSY.Qnkl4V1_VGY5RBmd.IYuZOfHD-vUZZhL7OicInyUdKcJRZYBjAN1K1OwCbWQZSbJro3Uh9aNJDgwm28sbYk988vnf0IncmvJhX8yXar-5AQtSHEez2iNDi0oGMsxA0vPqOmTUnJ8DV_HTI2xwCWgW5bNQzOHMn7O--JBETTCDwkTugOZBiD9vrqRJ4U50rYbecNLdboKR4nj_e2DfzDcsuLsXZ3gDfkZUM4h2StbSwLBda9asLCObTCKf8gmbboBR7yiwbnyUgxHFT9jqHm2nD52H0koTTHWJt3rA6tQX52f27iHBzL1zXbHBCDGY-ObPmOL2ITKvNub89KcE0U8ALHX9CnG_XQTrWr34boxWUHQsny1hbdFM_Z2v4xzFs48SfKXjdcVev-wc0K1JLSQFDMVC-5WUKJc1TCs7h2ojmEZsSFttJJc43WdRld4du1OkFbhJVU_EEd4Wa222vqITx6qvnWnrvpg41QffRa-Kt1mAzbnr3bXylE-Ovc9UQm7xxW0MGia_GSM2XdYJDgpWjNPsvSIzIof7_Chco_4W5wxDlnTe6pmy2iu9PsJ_4gMpT2p2lmKc6HjBbI7VwQEVQyt_9RH4sXUYiQNJ54q-K0vXz_yuXPqb3deJioVnBv0823L-vtB_Uw6BCWaJO8rjB6UgDmMTEin0oe6FiwFKC5wOYRr9M6dfSTyK-RnRR_zf5h70KL2rjraRsXdv9RRF5nsNP-7W5wf4v3LBw99JJZvlg0Zu0q-GK60O9yLAo1W7ZvUFPBO49Jar4bw_h39JJqtnOAcp0nJ8osk5PbMJE6voER_iocdazx8BYAtuvFQrMGidzJ4PwOSKbtcldiI0rlfYI4503kN8CeEqylACqiy9hfOoFcUKAAe3K43ZPMq6lLURp2y5ib2DsvPw.mv4GCDSL9h4ucuv5Y2jT6Q'; // API key from api-key.txt
+
+    // Initialize game
+    let gameEngine = new PokerGameEngine(API_TOKEN);
+
+    // DOM elements
+    const dealBtn = document.getElementById('deal-btn');
+    const flopBtn = document.getElementById('flop-btn');
+    const turnBtn = document.getElementById('turn-btn');
+    const riverBtn = document.getElementById('river-btn');
+    const foldBtn = document.getElementById('fold-btn');
+    const callBtn = document.getElementById('call-btn');
+    const raiseBtn = document.getElementById('raise-btn');
+    const betAmountInput = document.getElementById('bet-amount');
+    const statusMessage = document.getElementById('status-message');
+    const potSizeEl = document.getElementById('pot-size');
+    const humanStackDisplay = document.getElementById('human-stack-display');
+    const centerPotAmount = document.getElementById('center-pot-amount');
+    const boardCardsEl = document.getElementById('board-cards');
+    const humanCardsEl = document.getElementById('human-cards');
+    const aiActionsLog = document.getElementById('ai-actions-log');
+    const handHistoryEl = document.getElementById('hand-history');
+    const currentRoundEl = document.getElementById('current-round');
+    const activeBotsEl = document.getElementById('active-bots');
+    const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+
+    // Game state
+    let humanHoleCards = [];
+    let gameActive = false;
+    let currentRound = 'preflop';
+    let currentDifficulty = 'HARD';
+
+    // Initialize event listeners
+    function initEventListeners() {
+      dealBtn.addEventListener('click', startNewHand);
+      flopBtn.addEventListener('click', () => advanceRound('flop'));
+      turnBtn.addEventListener('click', () => advanceRound('turn'));
+      riverBtn.addEventListener('click', () => advanceRound('river'));
+      foldBtn.addEventListener('click', () => processHumanAction('fold'));
+      callBtn.addEventListener('click', () => processHumanAction('call'));
+      raiseBtn.addEventListener('click', () => processHumanAction('raise', parseInt(betAmountInput.value) || 0));
+
+      // Difficulty selector
+      difficultyBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          difficultyBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentDifficulty = btn.dataset.difficulty;
+          addToHandHistory(`Difficulty changed to ${currentDifficulty}`);
+          statusMessage.textContent = `Difficulty set to ${currentDifficulty}. Ready to play.`;
+        });
+      });
+
+      // Update bet amount on input change
+      betAmountInput.addEventListener('input', function() {
+        if (this.value && parseInt(this.value) > 0) {
+          raiseBtn.textContent = `Raise $${this.value}`;
+        } else {
+          raiseBtn.textContent = 'Raise';
+        }
+      });
+    }
+
+    // Initialize the game
+    function initializeGame() {
+      // Define bot players
+      const botPlayers = [
+        { id: 0, name: 'Bot 1', startingStack: 2100, position: 'SB' },
+        { id: 1, name: 'Bot 2', startingStack: 1900, position: 'BB' },
+        { id: 2, name: 'Bot 3', startingStack: 1750, position: 'UTG' },
+        { id: 3, name: 'Bot 4', startingStack: 1600, position: 'MP' },
+        { id: 4, name: 'Bot 5', startingStack: 2200, position: 'CO' }
+      ];
+
+      // Define human player
+      const humanPlayer = {
+        id: 'human',
+        name: 'Player',
+        startingStack: 2000,
+        position: 'BTN',
+        difficulty: currentDifficulty,
+        aggression: 0.72,
+        tightness: 0.38,
+        bluffing: 0.61
+      };
+
+      gameEngine = new PokerGameEngine(API_TOKEN);
+      gameEngine.initializeGame(botPlayers, humanPlayer);
+      updateGameStateDisplay();
+      updatePlayerStatus('Waiting for your action', 'Your Turn');
+    }
+
+    // Start a new hand
+    async function startNewHand() {
+      statusMessage.textContent = 'Dealing new hand...';
+      addLoadingMessage();
+
+      initializeGame();
+      gameActive = true;
+      currentRound = 'preflop';
+      currentRoundEl.textContent = capitalizeFirstLetter(currentRound);
+
+      // Generate hole cards for human
+      humanHoleCards = PokerUtils.generateRandomHoleCards();
+      displayCards(humanCardsEl, humanHoleCards);
+
+      // Update UI
+      updateStatusMessage(`New hand dealt. Your cards: ${PokerUtils.cardsToString(humanHoleCards)}. ${currentDifficulty} difficulty selected. Human acts first.`);
+      updateControlButtons();
+      updateGameStateDisplay();
+      addToHandHistory(`New hand started. Difficulty: ${currentDifficulty}`);
+      updatePlayerStatus('Waiting for your action', 'Your Turn');
+
+      // Start the preflop round
+      try {
+        await gameEngine.startRound(currentRound);
+        removeLoadingMessage();
+        updateStatusMessage('New hand dealt. Your turn to act first.');
+      } catch (error) {
+        removeLoadingMessage();
+        updateStatusMessage(`Error starting round: ${error.message}`, 'error');
+        console.error('Error starting round:', error);
+      }
+    }
+
+    // Advance to next round
+    async function advanceRound(round) {
+      if (!gameActive) return;
+
+      statusMessage.textContent = `Advancing to ${round}...`;
+      addLoadingMessage();
+
+      try {
+        if (round === 'flop') {
+          // Burn one and deal three
+          gameEngine.dealFlop();
+          currentRound = 'flop';
+        } else if (round === 'turn') {
+          // Burn one and deal one
+          gameEngine.dealTurn();
+          currentRound = 'turn';
+        } else if (round === 'river') {
+          // Burn one and deal one
+          gameEngine.dealRiver();
+          currentRound = 'river';
+        }
+
+        // Update UI
+        currentRoundEl.textContent = capitalizeFirstLetter(currentRound);
+
+        // Display community cards
+        const communityCards = gameEngine.boardCards;
+        displayCommunityCards(communityCards);
+
+        updateStatusMessage(`On the ${currentRound}. Human acts first.`);
+        updateControlButtons();
+        updateGameStateDisplay();
+        addToHandHistory(`Round advanced to ${currentRound}.`);
+        updatePlayerStatus('Waiting for your action', 'Your Turn');
+
+        // Start the new round with strategic intent
+        await gameEngine.startRound(currentRound, communityCards);
+
+        removeLoadingMessage();
+        updateStatusMessage(`On the ${currentRound}. Your turn to act.`);
+      } catch (error) {
+        removeLoadingMessage();
+        updateStatusMessage(`Error advancing round: ${error.message}`, 'error');
+        console.error('Error advancing round:', error);
+      }
+    }
+
+    // Process human action
+    async function processHumanAction(action, amount = 0) {
+      if (!gameActive) return;
+
+      // Validate action
+      if (action === 'raise' && (!amount || amount <= 0)) {
+        updateStatusMessage('Please enter a valid bet amount for raise.', 'error');
+        return;
+      }
+
+      statusMessage.textContent = `Processing your ${action}...`;
+      updatePlayerStatus(`You ${action}`, 'Action Processed');
+
+      try {
+        // Process the human action
+        const botResults = await gameEngine.processHumanAction(action, amount);
+
+        // Update UI with bot responses
+        updateStatusMessage(`You ${action}${action === 'raise' ? ` $${amount}` : ''}. Bots responding...`);
+        addToHandHistory(`Player ${action}${action === 'raise' ? ` $${amount}` : ''}.`);
+
+        // Show bot actions with a slight delay to make it feel more realistic
+        setTimeout(() => {
+          removeLoadingMessage();
+          showBotActions(botResults);
+
+          // Update game state display
+          updateGameStateDisplay();
+
+          // Check if round is complete
+          if (gameEngine.isRoundComplete()) {
+            if (currentRound === 'river') {
+              updateStatusMessage('Hand complete. Ready for next hand.');
+              updatePlayerStatus('Hand Complete', 'Waiting');
+              gameActive = false;
+            } else {
+              // Enable next round button
+              enableNextRoundButton();
+              updateStatusMessage(`End of ${currentRound}. Click next round to continue.`);
+              updatePlayerStatus(`End of ${currentRound}`, 'Waiting');
+            }
+          } else {
+            // Human still needs to act again (e.g. facing a bot raise)
+            updateStatusMessage('Bots acted. Your turn again.');
+            updatePlayerStatus('Waiting for your action', 'Your Turn');
+          }
+        }, 800); // 800ms delay to simulate thinking time
+
+      } catch (error) {
+        removeLoadingMessage();
+        updateStatusMessage(`Error processing action: ${error.message}`, 'error');
+        updatePlayerStatus('Error', 'Error');
+        console.error('Error processing action:', error);
+      }
+    }
+
+    // Show bot actions in the UI
+    function showBotActions(botResults) {
+      aiActionsLog.innerHTML = '';
+
+      if (botResults.length === 0) {
+        aiActionsLog.innerHTML = '<div class="log-entry">No bot actions to show</div>';
+        return;
+      }
+
+      botResults.forEach(result => {
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'log-entry';
+        actionDiv.textContent = `Bot ${result.botIndex}: ${result.action.toUpperCase()} (Confidence: ${(result.confidence * 100).toFixed(1)}%)`;
+        aiActionsLog.appendChild(actionDiv);
+
+        // Add to hand history
+        addToHandHistory(`Bot ${result.botIndex} ${result.action.toUpperCase()}`);
+      });
+    }
+
+    // Update game state display
+    function updateGameStateDisplay() {
+      const gameState = gameEngine.getCurrentGameState();
+
+      potSizeEl.textContent = gameState.potSize;
+      centerPotAmount.textContent = gameState.potSize;
+      humanStackDisplay.textContent = gameState.humanPlayer.stack;
+
+      // Update bot stacks in UI
+      gameState.bots.forEach((bot, index) => {
+        const botPosition = document.getElementById(`bot${index+1}-position`);
+        if (botPosition) {
+          const stackSpan = botPosition.querySelector('.stack');
+          if (stackSpan) {
+            stackSpan.textContent = bot.stack;
+          }
+
+          const statusEl = botPosition.querySelector('.player-status');
+          if (statusEl) {
+            statusEl.textContent = bot.folded ? 'Folded' : 'Active';
+            statusEl.style.color = bot.folded ? '#ff6b6b' : '#77c84e';
+          }
+        }
+      });
+
+      // Update active bots count
+      const activeBots = gameState.bots.filter(b => !b.folded).length;
+      activeBotsEl.textContent = activeBots;
+    }
+
+    // Update control buttons based on game state
+    function updateControlButtons() {
+      const roundButtons = [flopBtn, turnBtn, riverBtn];
+
+      // Disable all round buttons initially
+      roundButtons.forEach(btn => btn.disabled = true);
+
+      // Enable appropriate round button
+      if (currentRound === 'preflop') {
+        flopBtn.disabled = false;
+      } else if (currentRound === 'flop') {
+        turnBtn.disabled = false;
+      } else if (currentRound === 'turn') {
+        riverBtn.disabled = false;
+      }
+
+      // Enable action buttons if game is active
+      if (gameActive) {
+        foldBtn.disabled = false;
+        callBtn.disabled = false;
+        raiseBtn.disabled = false;
+        betAmountInput.disabled = false;
+      } else {
+        foldBtn.disabled = true;
+        callBtn.disabled = true;
+        raiseBtn.disabled = true;
+        betAmountInput.disabled = true;
+      }
+    }
+
+    // Enable next round button
+    function enableNextRoundButton() {
+      if (currentRound === 'flop') {
+        turnBtn.disabled = false;
+        updateStatusMessage(`End of flop. Click "Deal Turn" to continue.`);
+      } else if (currentRound === 'turn') {
+        riverBtn.disabled = false;
+        updateStatusMessage(`End of turn. Click "Deal River" to continue.`);
+      } else if (currentRound === 'river') {
+        updateStatusMessage(`End of river. Hand complete. Click "Deal New Hand" to start again.`);
+        gameActive = false;
+      }
+    }
+
+    // Display cards in an element
+    function displayCards(element, cards) {
+      element.innerHTML = '';
+
+      cards.forEach(card => {
+        const cardEl = document.createElement('div');
+        const isRedSuit = card.suit === 'hearts' || card.suit === 'diamonds';
+        cardEl.className = `card ${isRedSuit ? 'red-suit' : 'black-suit'}`;
+        cardEl.innerHTML = `
+          <div>${card.rank}<br>${getSuitSymbol(card.suit)}</div>
+        `;
+        element.appendChild(cardEl);
+      });
+    }
+
+    // Display community cards
+    function displayCommunityCards(cards) {
+      boardCardsEl.innerHTML = '';
+
+      cards.forEach(card => {
+        const cardEl = document.createElement('div');
+        const isRedSuit = card.suit === 'hearts' || card.suit === 'diamonds';
+        cardEl.className = `card ${isRedSuit ? 'red-suit' : 'black-suit'}`;
+        cardEl.innerHTML = `
+          <div>${card.rank}<br>${getSuitSymbol(card.suit)}</div>
+        `;
+        boardCardsEl.appendChild(cardEl);
+      });
+    }
+
+    // Get symbol for suit
+    function getSuitSymbol(suit) {
+      switch(suit) {
+        case 'hearts': return '♥';
+        case 'diamonds': return '♦';
+        case 'clubs': return '♣';
+        case 'spades': return '♠';
+        default: return '?';
+      }
+    }
+
+    // Add event to hand history
+    function addToHandHistory(event) {
+      const eventDiv = document.createElement('div');
+      eventDiv.className = 'log-entry';
+      eventDiv.textContent = `[${new Date().toLocaleTimeString()}] ${event}`;
+      eventDiv.style.padding = '5px 0';
+      handHistoryEl.appendChild(eventDiv);
+      handHistoryEl.scrollTop = handHistoryEl.scrollHeight;
+    }
+
+    // Update status message with possible error styling
+    function updateStatusMessage(message, type = 'normal') {
+      statusMessage.textContent = message;
+
+      if (type === 'error') {
+        statusMessage.className = 'error-message';
+      } else if (type === 'success') {
+        statusMessage.className = 'success-message';
+      } else {
+        statusMessage.className = 'status-message';
+      }
+    }
+
+    // Update player status display
+    function updatePlayerStatus(message, status) {
+      const humanStatusEl = document.getElementById('human-position').querySelector('.player-status');
+      if (humanStatusEl) {
+        humanStatusEl.textContent = status;
+        humanStatusEl.style.color = status === 'Your Turn' ? '#77c84e' :
+                                   status === 'Action Processed' ? '#ffd700' :
+                                   status === 'Waiting' ? '#aaa' : '#ff6b6b';
+      }
+    }
+
+    // Add loading message during AI processing
+    function addLoadingMessage() {
+      const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'ai-thinking';
+      loadingDiv.id = 'ai-thinking';
+      loadingDiv.innerHTML = '<span class="loading"></span> AI is thinking...';
+      aiActionsLog.appendChild(loadingDiv);
+      aiActionsLog.scrollTop = aiActionsLog.scrollHeight;
+    }
+
+    // Remove loading message
+    function removeLoadingMessage() {
+      const loadingEl = document.getElementById('ai-thinking');
+      if (loadingEl) {
+        loadingEl.remove();
+      }
+    }
+
+    // Capitalize first letter of a string
+    function capitalizeFirstLetter(string) {
+      return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    // Initialize the game when page loads
+    window.onload = function() {
+      initEventListeners();
+      updateStatusMessage('Welcome! Select difficulty and click "Deal New Hand" to begin.');
+      updateGameStateDisplay();
+    };
+  </script>
+</body>
+</html>
